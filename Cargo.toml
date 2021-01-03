@@ -1,0 +1,11 @@
+[package]
+name = "godot_resvg"
+version = "0.1.0"
+authors = ["Guillaume Turchini <orion+github@orion78.fr>"]
+edition = "2018"
+
+[dependencies]
+gdnative = "0.9.1"
+
+[lib]
+crate-type = ["cdylib"]

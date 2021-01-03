@@ -1,0 +1,18 @@
+[entry]
+
+X11.64="res://addons/godot_resvg/libgodot_resvg.so"
+OSX.64="res://addons/godot_resvg/libgodot_resvg.dylib"
+Windows.64="res://addons/godot_resvg/godot_resvg.dll"
+
+[dependencies]
+
+X11.64=[  ]
+OSX.64=[  ]
+Windows.64=[  ]
+
+[general]
+
+singleton=false
+load_once=true
+symbol_prefix="godot_"
+reloadable=true

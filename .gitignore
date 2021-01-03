@@ -1,0 +1,8 @@
+/target
+/.idea
+
+Cargo.lock
+
+*.dll
+*.so
+*.dynlib
