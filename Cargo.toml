@@ -6,6 +6,11 @@ edition = "2018"
 
 [dependencies]
 gdnative = "0.9.1"
+resvg = "0.12.0"
+usvg = "0.12.0"
 
 [lib]
 crate-type = ["cdylib"]
+
+[profile.release]
+debug = true

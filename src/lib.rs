@@ -1,5 +1,6 @@
 use gdnative::prelude::*;
-use gdnative::api::{EditorPlugin, Resource, Script, Texture};
+use gdnative::api::{EditorPlugin, Resource, Script, Texture, ImageTexture, Image};
+use gdnative::prelude::Null;
 
 #[derive(NativeClass)]
 #[inherit(EditorPlugin)]
@@ -32,31 +33,57 @@ impl GodotResvgEditorPlugin {
 #[inherit(Node2D)]
 struct SVGPoly {
     #[property(path = "SVG Path")]
-    svg_path: String
+    svg_path: String,
+    image_texture: Option<Ref<ImageTexture>>,
 }
 
 #[methods]
 impl SVGPoly {
     fn new(_owner: TRef<Node2D>) -> Self {
         SVGPoly {
-            svg_path: String::new()
+            svg_path: String::new(),
+            image_texture: None,
         }
     }
 
     #[export]
-    fn _enter_tree(&self, _owner: TRef<Node2D>) {}
+    fn _enter_tree(&mut self, _owner: TRef<Node2D>) {
+        if self.image_texture.is_none() {
+            let usvg_tree = usvg::Tree::from_file(&self.svg_path, &usvg::Options::default()).unwrap();
+            let rendered_img = resvg::render(&usvg_tree, usvg::FitTo::Original, None).unwrap();
 
-    #[export]
-    fn _process(&self, _owner: TRef<Node2D>, _delta: f64) {
-        //godot_print!("Path is {}", self.svg_path)
+            let img = Image::new();
+            img.create_from_data(rendered_img.width().into(), rendered_img.height().into(), false,
+                                 Image::FORMAT_RGBA8, TypedArray::from_slice(rendered_img.data()));
+
+            let image_texture = ImageTexture::new();
+            image_texture.create_from_image(img, 7);
+
+            // As I'm giving the texture to the engine (to draw it), I need it to be shared
+            // This is a thread safety measure (as the engine could possibly keep a ref and modify the content concurrently)
+            // To operate on it however, I will have to use unsafe code and assume I'm the only one to actually have the ref (which should be the case)
+            self.image_texture = Some(image_texture.into_shared());
+        }
     }
 
     #[export]
+    fn _exit_tree(&mut self, _owner: TRef<Node2D>) {
+        if self.image_texture.is_some() {
+            self.image_texture = None
+        }
+    }
+
+    /*#[export]
+    fn _process(&self, _owner: TRef<Node2D>, _delta: f64) {
+        //godot_print!("Path is {}", self.svg_path)
+    }*/
+
+    #[export]
     fn _draw(&self, owner: TRef<Node2D>) {
-        owner.draw_circle(Vector2::new(25., 25.), 10., Color::rgb(1., 0., 0.));
-        owner.draw_circle(Vector2::new(45., 25.), 10., Color::rgb(1., 0., 0.));
-        owner.draw_line(Vector2::new(35., 25.), Vector2::new(35., 55.),
-                        Color::rgb(1., 0., 0.), 10., true)
+        if self.image_texture.is_some() {
+            owner.draw_texture(self.image_texture.as_ref().unwrap(), Vector2::new(20., 20.),
+                               Color::rgba(1., 1., 1., 1.), Null::null());
+        }
     }
 }
 
