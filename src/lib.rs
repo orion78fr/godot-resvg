@@ -1,6 +1,8 @@
 use gdnative::prelude::*;
 use gdnative::api::{EditorPlugin, Resource, Script, Texture, ImageTexture, Image};
 use gdnative::prelude::Null;
+use usvg::{ViewBox, AspectRatio, Rect, NodeKind};
+use std::ops::DerefMut;
 
 #[derive(NativeClass)]
 #[inherit(EditorPlugin)]
@@ -50,7 +52,22 @@ impl SVGPoly {
     fn _enter_tree(&mut self, _owner: TRef<Node2D>) {
         if self.image_texture.is_none() {
             let usvg_tree = usvg::Tree::from_file(&self.svg_path, &usvg::Options::default()).unwrap();
-            let rendered_img = resvg::render(&usvg_tree, usvg::FitTo::Original, None).unwrap();
+
+            {
+                let mut usvg_root_node = usvg_tree.root();
+                let mut ref_mut = usvg_root_node.borrow_mut();
+                let der_mut = ref_mut.deref_mut();
+                let svg_node = match der_mut {
+                    NodeKind::Svg(ref mut svg) => svg,
+                    _ => unreachable!(),
+                };
+                svg_node.view_box = ViewBox {
+                    aspect: AspectRatio::default(),
+                    rect: Rect::new(50., 50., 200., 200.).unwrap(),
+                };
+            }
+
+            let rendered_img = resvg::render(&usvg_tree, usvg::FitTo::Zoom(2.), None).unwrap();
 
             let img = Image::new();
             img.create_from_data(rendered_img.width().into(), rendered_img.height().into(), false,
@@ -72,11 +89,6 @@ impl SVGPoly {
             self.image_texture = None
         }
     }
-
-    /*#[export]
-    fn _process(&self, _owner: TRef<Node2D>, _delta: f64) {
-        //godot_print!("Path is {}", self.svg_path)
-    }*/
 
     #[export]
     fn _draw(&self, owner: TRef<Node2D>) {
